@@ -1,0 +1,63 @@
+stages:
+  - style
+  - build
+  - test
+  - push
+
+before_script:
+  - docker info
+  - echo $CI_USER "$CI_PASSWORD" $CI_REGISTRY
+  - docker login -u "$CI_USER" -p "$CI_PASSWORD" $CI_REGISTRY
+  - export
+
+
+branch-build-push:
+  stage: build
+  script:
+    - docker image prune -a -f
+    - sed -i "2 a ENV RELEASE $CI_COMMIT_SHORT_SHA" Dockerfile
+    - sed -i "2 a ENV PROJECT $CI_PROJECT_NAME" Dockerfile
+    - docker build -t $CI_IMAGE:go-$CI_COMMIT_SHORT_SHA-pre .
+    - docker push $CI_IMAGE:go-$CI_COMMIT_SHORT_SHA-pre
+  tags:
+    - ci
+  only:
+    - branches
+
+#branch-test-push:
+#  stage: test
+#  script:
+#    - docker run --rm $CI_IMAGE:$CI_COMMIT_SHORT_SHA-pre python3 test_main.py
+#    - docker tag $CI_IMAGE:$CI_COMMIT_SHORT_SHA-pre $CI_IMAGE:$CI_COMMIT_SHORT_SHA
+#    - docker push $CI_IMAGE:$CI_COMMIT_SHORT_SHA
+#  tags:
+#    - ci
+#  only:
+#    - branches
+
+tag-build-push:
+  stage: build
+  script:
+    - docker image prune -a -f
+    - sed -i "2 a ENV RELEASE $CI_COMMIT_TAG" Dockerfile
+    - sed -i "2 a ENV PROJECT $CI_PROJECT_NAME" Dockerfile
+    - docker build -t $CI_IMAGE:go-$CI_COMMIT_TAG-pre .
+    - docker push $CI_IMAGE:go-$CI_COMMIT_TAG-pre
+  tags:
+    - ci
+  only:
+    - tags
+
+#tag-test-push:
+#  stage: test
+#  script:
+#    - docker run --rm $CI_IMAGE:$CI_COMMIT_TAG-pre python3 test_main.py
+#    - docker tag $CI_IMAGE:$CI_COMMIT_TAG-pre $CI_IMAGE:$CI_COMMIT_TAG
+#    - docker push $CI_IMAGE:$CI_COMMIT_TAG
+#    - docker tag $CI_IMAGE:$CI_COMMIT_TAG $CI_IMAGE:latest
+#    - docker push $CI_IMAGE:latest
+#  tags:
+#    - ci
+#  only:
+#    - tags
+
